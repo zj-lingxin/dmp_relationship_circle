@@ -1,7 +1,7 @@
 package com.asto.dmp.relcir.base
 
 object Constants {
-
+ // private val prop = new Props()
   object App {
     val NAME = "关系圈算法"
     val LOG_WRAPPER = "##########"
@@ -16,7 +16,7 @@ object Constants {
   }
   
   object Hadoop {
-    val JOBTRACKER_ADDRESS = "appcluster"
+    val JOBTRACKER_ADDRESS = Props.get("jobtracker_address")
     val DEFAULT_FS = s"hdfs://$JOBTRACKER_ADDRESS"
   }
   /** 输入文件路径 **/

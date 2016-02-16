@@ -1,9 +1,7 @@
 package com.asto.dmp.relcir.base
 
-import com.asto.dmp.relcir.mq.{MsgWrapper, Msg, MQAgent}
-import com.asto.dmp.relcir.service.impl.TrendDataService
+import com.asto.dmp.relcir.service.ServiceImpl
 import com.asto.dmp.relcir.util._
-
 import org.apache.spark.Logging
 
 object Main extends Logging {
@@ -16,8 +14,7 @@ object Main extends Logging {
   }
 
   private def runServices() {
-    // new PrepareService().run()
-
+    new ServiceImpl().run()
   }
 
   /**
@@ -25,17 +22,20 @@ object Main extends Logging {
    */
   private def closeResources() = {
     Contexts.stopSparkContext()
-    MQAgent.close()
+    //MQAgent.close()
   }
 
   /**
    * 判断传入的参数是否合法
    */
   private def argsIsIllegal(args: Array[String]) = {
-    if (Option(args).isEmpty || args.length < 1 || args.length > 2) {
-      logError(Utils.logWrapper("请传入程序参数:时间戳、all"))
+    if (Option(args).isEmpty || args.length != 1) {
+      logError("请传入程序参数:时间戳")
       true
     } else {
+      Constants.App.TIMESTAMP = args(0).toLong
+      //从外部传入的是秒级别的时间戳，所以要乘以1000
+      Constants.App.TODAY = DateUtils.timestampToStr(Constants.App.TIMESTAMP * 1000, "yyyyMM/dd")
       false
     }
   }
@@ -44,7 +44,7 @@ object Main extends Logging {
    * 打印程序运行的时间
    */
   private def printRunningTime(startTime: Long) {
-    logInfo(Utils.logWrapper(s"程序共运行${(System.currentTimeMillis() - startTime) / 1000}秒"))
+    logInfo(s"程序共运行${(System.currentTimeMillis() - startTime) / 1000}秒")
   }
 
   /**
@@ -53,7 +53,7 @@ object Main extends Logging {
    */
   private def printErrorLogsIfExist() {
     if (Constants.App.ERROR_LOG.toString != "") {
-      logError(Utils.logWrapper(s"程序在运行过程中遇到了如下错误：${Constants.App.ERROR_LOG.toString}"))
+      logError(s"程序在运行过程中遇到了如下错误：${Constants.App.ERROR_LOG.toString}")
     }
   }
 

@@ -1,7 +1,6 @@
-package com.asto.dmp.relcir.dao
+package com.asto.dmp.relcir.dataframe
 
 import com.asto.dmp.relcir.base.{Constants, Contexts}
-import com.asto.dmp.relcir.util.Utils
 import org.apache.spark.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
@@ -9,7 +8,7 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import scala.language.implicitConversions
 import scala.reflect.runtime.universe.TypeTag
 
-trait Dao extends Logging {
+trait DataFrame extends Logging {
   private val sqlContext = Contexts.sqlContext
 
   protected def getProps(inputFilePath: String, schema: String, tempTableName: String, sqlObj: SQL, separator: String = Constants.InputPath.SEPARATOR) = {
@@ -31,7 +30,7 @@ trait Dao extends Logging {
     if (Option(sqlObj.orderBy).isDefined) {
       //使用OrderBy的时候，需要将spark.sql.relcirffle.partitions设小
       sqlContext.sql(s"SET spark.sql.shuffle.partitions=10")
-      logInfo(Utils.logWrapper("order by 操作需要设置: SET spark.sql.shuffle.partitions=200 "))
+      logInfo("order by 操作需要设置: SET spark.sql.shuffle.partitions=200 ")
       _sql += s" ORDER BY  ${sqlObj.orderBy} "
     }
 
@@ -40,12 +39,12 @@ trait Dao extends Logging {
     if (Option(sqlObj.limit).isDefined)
       _sql += s" LIMIT ${sqlObj.limit}"
 
-    logInfo(Utils.logWrapper(s"执行Sql:${_sql}"))
+    logInfo(s"执行Sql:${_sql}")
     val resultRDD = sqlContext.sql(_sql).map(a => a.toSeq.toArray)
 
     if (Option(sqlObj.orderBy).isDefined) {
       //order by操作完成后设回默认值200
-      logInfo(Utils.logWrapper("order by 操作完成,设回默认值: SET spark.sql.shuffle.partitions=200"))
+      logInfo("order by 操作完成,设回默认值: SET spark.sql.shuffle.partitions=200")
       sqlContext.sql("SET spark.sql.shuffle.partitions=200")
     }
     resultRDD
@@ -55,7 +54,7 @@ trait Dao extends Logging {
     if (notExistTempTable(tempTableName)) {
       import sqlContext.implicits._
       rdd.toDF(schema.split(",") :_*).registerTempTable("full_fields_order")
-      logInfo(Utils.logWrapper(s"注册临时表：$tempTableName"))
+      logInfo(s"注册临时表：$tempTableName")
     }
   }
 
@@ -66,13 +65,13 @@ trait Dao extends Logging {
       val tmpRDD = Contexts.sparkContext.textFile(inputFilePath)
         .map(_.split(separator)).cache()
       tmpRDD.map(t =>(t.length,1)).countByValue()
-      logInfo(Utils.logWrapper(s"schema的字段是$fieldsNum,解析后的字段个数与行数的关系是:${tmpRDD.map(_.length).countByValue()}"))
+      logInfo(s"schema的字段是$fieldsNum,解析后的字段个数与行数的关系是:${tmpRDD.map(_.length).countByValue()}")
 
       val rowRDD = tmpRDD.filter(x => x.length == fieldsNum)
         .map(fields => for (field <- fields) yield field.trim)
         .map(fields => Row(fields: _*))
       sqlContext.createDataFrame(rowRDD, simpleSchema(schema)).registerTempTable(tempTableName)
-      logInfo(Utils.logWrapper(s"注册临时表：$tempTableName"))
+      logInfo(s"注册临时表：$tempTableName")
     }
   }
 

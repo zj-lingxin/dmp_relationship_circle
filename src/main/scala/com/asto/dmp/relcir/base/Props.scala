@@ -2,11 +2,17 @@ package com.asto.dmp.relcir.base
 
 import java.io.FileInputStream
 import java.util.Properties
-import com.asto.dmp.relcir.util.Utils
 import org.apache.spark.Logging
 
 object Props extends Logging {
   private val prop = new Properties()
+
+  /**
+   * 根据配置文件中的的属性名获取属性值
+   */
+  def get(propertyName: String): String = {
+    new String(Props.prop.getProperty(propertyName).getBytes("ISO-8859-1"), "utf-8")
+  }
 
   /**
    *在spark-submit中加入--driver-java-options -DPropPath=/home/hadoop/prop.properties的参数后，
@@ -15,10 +21,10 @@ object Props extends Logging {
    */
   private def getPropertyFile: String = {
     if (externalPropertiesExist) {
-      logInfo(Utils.logWrapper(s"配置文件：${System.getProperty("PropPath")}"))
+      logInfo(s"配置文件：${System.getProperty("PropPath")}")
       System.getProperty("PropPath")
     } else {
-      logInfo(Utils.logWrapper(s"配置文件：${getClass.getResource("/").getPath + "prop.properties"}"))
+      logInfo(s"配置文件：${getClass.getResource("/").getPath + "prop.properties"}")
       getClass().getResource("/").getPath() + "prop.properties"
     }
   }
@@ -31,12 +37,5 @@ object Props extends Logging {
 
   //装载配置文件
   prop.load(new FileInputStream(getPropertyFile))
-
-  /**
-   * 根据配置文件中的的属性名获取属性值
-   */
-  def get(propertyName: String): String = {
-    new String(prop.getProperty(propertyName).getBytes("ISO-8859-1"), "utf-8")
-  }
 
 }
