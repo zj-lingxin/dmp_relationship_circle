@@ -22,7 +22,6 @@ object Main extends Logging {
    */
   private def closeResources() = {
     Contexts.stopSparkContext()
-    //MQAgent.close()
   }
 
   /**

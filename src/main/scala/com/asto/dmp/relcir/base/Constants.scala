@@ -24,7 +24,7 @@ object Constants {
     val SEPARATOR = "\t"
 
     private val ONLINE_DIR = s"${App.DIR}/input/online/${App.TODAY}/${App.TIMESTAMP}"
-    val PARTY_REL_FROM_TO = s"$ONLINE_DIR/party_rel_from_to"
+    //val PARTY_REL_FROM_TO = s"$ONLINE_DIR/party_rel_from_to"
   }
   
 
@@ -32,13 +32,12 @@ object Constants {
   object OutputPath {
     val SEPARATOR = "\t"
     private val ONLINE_DIR = s"${App.DIR}/output/online/${App.TODAY}/${App.TIMESTAMP}"
-    val RESULT_GROUP = s"$ONLINE_DIR/result_group"
-    val RESULT_SUM = s"$ONLINE_DIR/result_sum"
-    val RESULT_REL = s"$ONLINE_DIR/result_rel"
+    val PARTY_REL_GROUP = s"$ONLINE_DIR/party_rel_group"
+    val PARTY_REL_FROM_TO = s"$ONLINE_DIR/party_rel_from_to"
   }
 
   /** 表的模式 **/
   object Schema {
-    val PARTY_REL_FROM_TO = "from_party_uuid,to_party_uuid"
+    //val PARTY_REL_FROM_TO = "from_party_uuid,to_party_uuid"
   }
 }

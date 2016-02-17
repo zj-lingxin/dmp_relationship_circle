@@ -15,10 +15,14 @@ object ServiceImpl {
 }
 
 class ServiceImpl extends Service {
+  val partyRelDao = new PartyRelDao()
 
-  val fromToRelRDD = DataQuery.getPartyRelProps(SQL().select("from_party_uuid,to_party_uuid").where("to_party_uuid != 'null'"))
+/*  val fromToRelRDD = DataQuery.getPartyRelProps(SQL().select("from_party_uuid,to_party_uuid").where("to_party_uuid != 'null'"))
     .map(a => (a(0).toString, a(1).toString))
-  val fromToRelList = fromToRelRDD.collect().toList
+  val fromToRelList = fromToRelRDD.collect().toList*/
+
+  val fromToRelList = partyRelDao.getFromToRel
+  val fromToRelRDD = Contexts.sparkContext.makeRDD(fromToRelList)
 
   def getTempGroupIds = {
     var index = 0L
@@ -89,15 +93,12 @@ class ServiceImpl extends Service {
   override protected def runServices(): Unit = {
 
     val groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles).sortBy(a => a._1)
-    val groupMemberCountRDD = groupIdAndRolesRDD.map(t => (t._1, 1)).reduceByKey(_ + _).sortBy(_._2)
     val groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD).sortBy(_._1)
 
-    FileUtils.saveAsTextFile(groupIdAndRolesRDD, Constants.OutputPath.RESULT_GROUP)
-    FileUtils.saveAsTextFile(groupMemberCountRDD, Constants.OutputPath.RESULT_SUM)
-    FileUtils.saveAsTextFile(groupIdFromUUIDsAndToUUIDsRDD, Constants.OutputPath.RESULT_REL)
+    FileUtils.saveAsTextFile(groupIdAndRolesRDD, Constants.OutputPath.PARTY_REL_GROUP)
+    FileUtils.saveAsTextFile(groupIdFromUUIDsAndToUUIDsRDD, Constants.OutputPath.PARTY_REL_FROM_TO)
 
-    val partyRelDao = new PartyRelDao()
-    partyRelDao.partyRelGroupInsert(groupIdAndRolesRDD.collect())
+    partyRelDao.partyRelResultInsert(groupIdAndRolesRDD.collect(), groupIdFromUUIDsAndToUUIDsRDD.collect())
 
   }
 }
