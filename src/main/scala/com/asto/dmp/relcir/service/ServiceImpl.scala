@@ -3,7 +3,8 @@ package com.asto.dmp.relcir.service
 import com.asto.dmp.relcir.base.{Constants, Contexts}
 import com.asto.dmp.relcir.dao.PartyRelDao
 import com.asto.dmp.relcir.dataframe.{DataQuery, SQL}
-import com.asto.dmp.relcir.util.FileUtils
+import com.asto.dmp.relcir.mq._
+import com.asto.dmp.relcir.base._
 import org.apache.spark.rdd.RDD
 import scala.collection.mutable._
 import com.asto.dmp.relcir.service.ServiceImpl._
@@ -95,10 +96,24 @@ class ServiceImpl extends Service {
     val groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles).sortBy(a => a._1)
     val groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD).sortBy(_._1)
 
-    FileUtils.saveAsTextFile(groupIdAndRolesRDD, Constants.OutputPath.PARTY_REL_GROUP)
-    FileUtils.saveAsTextFile(groupIdFromUUIDsAndToUUIDsRDD, Constants.OutputPath.PARTY_REL_FROM_TO)
+    //FileUtils.saveAsTextFile(groupIdAndRolesRDD, Constants.OutputPath.PARTY_REL_GROUP)
+    //FileUtils.saveAsTextFile(groupIdFromUUIDsAndToUUIDsRDD, Constants.OutputPath.PARTY_REL_FROM_TO)
 
-    partyRelDao.partyRelResultInsert(groupIdAndRolesRDD.collect(), groupIdFromUUIDsAndToUUIDsRDD.collect())
+    //relList: partyRelGroupId、partyUuid、role
+    val relList: List[RelMsg] = groupIdAndRolesRDD.collect.map {
+      rel => RelMsg(rel._1.toString, rel._2, rel._3.toString)
+    }.toList
+
+    MQAgent.send(Props.get("rel_list_queue_name"), RelWrapper.getJsonStr(relList))
+
+    //partyRelList: partyRelGroupId、fromPartyUuid、toPartyUuid
+    val partyRelList: List[PartyRelMsg] = groupIdFromUUIDsAndToUUIDsRDD.collect.map {
+      rel => PartyRelMsg(rel._1.toString, rel._2, rel._3)
+    }.toList
+    MQAgent.send(Props.get("party_rel_list_queue_name"), PartyRelWrapper.getJsonStr(partyRelList))
+
+
+    //partyRelDao.partyRelResultInsert(groupIdAndRolesRDD.collect(), groupIdFromUUIDsAndToUUIDsRDD.collect())
 
   }
 }

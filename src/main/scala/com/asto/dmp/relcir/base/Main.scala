@@ -1,5 +1,6 @@
 package com.asto.dmp.relcir.base
 
+import com.asto.dmp.relcir.mq.MQAgent
 import com.asto.dmp.relcir.service.ServiceImpl
 import com.asto.dmp.relcir.util._
 import org.apache.spark.Logging
@@ -22,6 +23,7 @@ object Main extends Logging {
    */
   private def closeResources() = {
     Contexts.stopSparkContext()
+    MQAgent.close()
   }
 
   /**
