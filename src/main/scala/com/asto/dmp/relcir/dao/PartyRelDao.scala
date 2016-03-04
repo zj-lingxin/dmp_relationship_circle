@@ -11,8 +11,7 @@ class PartyRelDao {
     val result: ArrayBuffer[(String, String)] = new ArrayBuffer()
     try {
       val statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
-      val rs = statement.executeQuery( """select from_party_uuid,to_party_uuid from party_rel  a where a.rel_type in ("SECOND_CONTACTOR","FIRST_CONTACTOR","THREE_CONTACTOR") and a.to_party_uuid is not null""")
-
+      val rs = statement.executeQuery( """select from_party_uuid,to_party_uuid from party_rel  a where a.rel_type in ("SECOND_CONTACTOR","FIRST_CONTACTOR","THREE_CONTACTOR") and a.to_party_uuid is not null and del_flag = 0""")
       while (rs.next) {
         result += ((rs.getString("from_party_uuid"), rs.getString("to_party_uuid")))
       }

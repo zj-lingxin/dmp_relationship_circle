@@ -11,7 +11,7 @@ import scala.reflect.runtime.universe.TypeTag
 trait DataFrame extends Logging {
   private val sqlContext = Contexts.sqlContext
 
-  protected def getProps(inputFilePath: String, schema: String, tempTableName: String, sqlObj: SQL, separator: String = Constants.InputPath.SEPARATOR) = {
+  protected def getProps(inputFilePath: String, schema: String, tempTableName: String, sqlObj: SQL, separator: String = "\t") = {
     registerTempTableIfNotExist(inputFilePath, schema, tempTableName, separator)
     combineSqlAndQuery(tempTableName, sqlObj)
   }

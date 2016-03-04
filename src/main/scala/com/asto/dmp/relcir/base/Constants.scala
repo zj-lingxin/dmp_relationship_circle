@@ -16,28 +16,17 @@ object Constants {
   }
   
   object Hadoop {
-    val JOBTRACKER_ADDRESS = Props.get("jobtracker_address")
+    val JOBTRACKER_ADDRESS = "appcluster"
     val DEFAULT_FS = s"hdfs://$JOBTRACKER_ADDRESS"
   }
-  /** 输入文件路径 **/
-  object InputPath {
-    val SEPARATOR = "\t"
-
-    private val ONLINE_DIR = s"${App.DIR}/input/online/${App.TODAY}/${App.TIMESTAMP}"
-    //val PARTY_REL_FROM_TO = s"$ONLINE_DIR/party_rel_from_to"
-  }
-  
 
   /** 输出文件路径 **/
   object OutputPath {
     val SEPARATOR = "\t"
-    private val ONLINE_DIR = s"${App.DIR}/output/online/${App.TODAY}/${App.TIMESTAMP}"
-    val PARTY_REL_GROUP = s"$ONLINE_DIR/party_rel_group"
-    val PARTY_REL_FROM_TO = s"$ONLINE_DIR/party_rel_from_to"
+    private val PATH = s"${App.DIR}/output/${App.TODAY}/${App.TIMESTAMP}"
+    val PARTY_REL_GROUP = s"$PATH/party_rel_group"
+    val PARTY_REL_GROUP_LIST = s"$PATH/party_rel_group_list"
   }
 
-  /** 表的模式 **/
-  object Schema {
-    //val PARTY_REL_FROM_TO = "from_party_uuid,to_party_uuid"
-  }
+
 }
