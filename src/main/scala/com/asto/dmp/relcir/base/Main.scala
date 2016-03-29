@@ -31,7 +31,7 @@ object Main extends Logging {
    */
   private def argsIsIllegal(args: Array[String]) = {
     if (Option(args).isEmpty || args.length != 1) {
-      logError("请传入程序参数:fromPartyUuid")
+      logError("请传入程序参数:fromPartyUuid.(如果是跑全量，请输入\"ALL\")")
       true
     } else {
       Constants.App.TIMESTAMP = System.currentTimeMillis()

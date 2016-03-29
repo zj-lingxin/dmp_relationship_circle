@@ -10,23 +10,14 @@ import scala.collection.mutable._
 import com.asto.dmp.relcir.service.ServiceImpl._
 
 object ServiceImpl {
-  val applyCode = 1 //申请人
-  val relativeCode = 2 //联系人
+  val applyCode = 1
+  //申请人
+  val relativeCode = 2
+  //联系人
   val applyAndRelativeCode = 3 //申请人和联系人
-
-  def main(args: Array[String]) {
-    var relMsgBuffer = scala.collection.mutable.ArrayBuffer[Int]()
-    for (i <- 0 until 1510) {
-      relMsgBuffer += i
-      if (i == 1509 || (i % 500 == 0 && i != 0)) {
-        println(relMsgBuffer.toList.head + " " + relMsgBuffer.toList.last)
-        relMsgBuffer.clear()
-      }
-    }
-  }
 }
 
-class ServiceImpl() extends Service with Logging with  scala.Serializable {
+class ServiceImpl() extends Service with Logging with scala.Serializable {
   val partyRelDao = new PartyRelDao()
 
   val fromToRelList = partyRelDao.getFromToRel
@@ -119,7 +110,7 @@ class ServiceImpl() extends Service with Logging with  scala.Serializable {
     val partyRelList: List[PartyRelMsg] = groupIdFromUUIDsAndToUUIDsRDD.collect().map {
       rel => PartyRelMsg(rel._1.toString, rel._2, rel._3)
     }.toList
-    
+
     logInfo("######## 向MQ发送消息 #######")
     val patchSize = 500
     var relMsgBuffer = scala.collection.mutable.ArrayBuffer[RelMsg]()
@@ -142,16 +133,24 @@ class ServiceImpl() extends Service with Logging with  scala.Serializable {
   }
 
   override protected def runServices(): Unit = {
+    var groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles) //.sortBy(a => a._1)
+    var groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD)
 
-    val groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles)//.sortBy(a => a._1)
-    val groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD)
-    val uuid = Constants.App.FROM_PARTY_UUID
-    val groupId: Long = groupIdAndRolesRDD.filter(_._2 == uuid).map(_._1).max()
+    //group_id重新赋值
+    if (!"ALL".equalsIgnoreCase(Constants.App.FROM_PARTY_UUID)) {
+      val uuid = Constants.App.FROM_PARTY_UUID
+      val groupId: Long = groupIdAndRolesRDD.filter(_._2 == uuid).map(_._1).max()
+      groupIdAndRolesRDD = groupIdAndRolesRDD.filter(_._1 == groupId)
+      groupIdFromUUIDsAndToUUIDsRDD = groupIdFromUUIDsAndToUUIDsRDD.filter(_._1 == groupId)
 
-    val groupIdAndRoles = groupIdAndRolesRDD.filter(_._1 == groupId)
-    val groupIdFromUUIDsAndToUUIDs = groupIdFromUUIDsAndToUUIDsRDD.filter(_._1 == groupId)
+      //赋予新的group_id
+      val partyUuidArray = groupIdAndRolesRDD.map(_._2).collect()
+      val newGroupId = partyRelDao.getGroupId(partyUuidArray)
+      groupIdAndRolesRDD = groupIdAndRolesRDD.map(a => (newGroupId, a._2, a._3))
+      groupIdFromUUIDsAndToUUIDsRDD = groupIdFromUUIDsAndToUUIDsRDD.map(a => (newGroupId, a._2, a._3))
+    }
 
-    if (Props.get("result_to_hdfs").toBoolean) saveResultToHDFS(groupIdAndRoles, groupIdFromUUIDsAndToUUIDs)
-    if (Props.get("result_to_mq").toBoolean) sendResultToMQ(groupIdAndRoles, groupIdFromUUIDsAndToUUIDs)
+    if (Props.get("result_to_hdfs").toBoolean) saveResultToHDFS(groupIdAndRolesRDD, groupIdFromUUIDsAndToUUIDsRDD)
+    if (Props.get("result_to_mq").toBoolean) sendResultToMQ(groupIdAndRolesRDD, groupIdFromUUIDsAndToUUIDsRDD)
   }
 }
