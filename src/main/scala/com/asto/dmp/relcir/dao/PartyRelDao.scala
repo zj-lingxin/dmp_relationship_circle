@@ -6,27 +6,28 @@ import com.asto.dmp.relcir.dao.PartyRelDao._
 import scala.collection.mutable._
 
 class PartyRelDao {
-  def getGroupId(party_uuids: Array[String]): Long = {
+  def getGroupId(partyUuids: Array[String]): Long = {
     val conn = DriverManager.getConnection(jdbcConn)
-    var groupId: Long = 0
-    var findId = false
+    var groupId: Long = -1
+
     try {
-      val ids = party_uuids.map(id => s""""${id}"""").mkString(",")
+      val ids = partyUuids.map(id => s""""${id}"""").mkString(",")
       val statement = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)
       var rs = statement.executeQuery( s"""select distinct party_rel_group_id from party_rel_group  g where g.party_uuid in ($ids)""")
-      while (rs.next && !findId) {
-        findId = true
+      if (rs.next) {
         groupId = rs.getLong("party_rel_group_id")
       }
 
       //如果在数据库中没有找到相应的groupId，那么就取数据库中最大的groupId + 1
-      if (!findId) {
+      if (groupId == -1) {
         rs = statement.executeQuery( """ select max(x.party_rel_group_id) maxGroupId from party_rel_group x """)
-        groupId = rs.getLong(1) + 1
+        if(rs.next) {
+          groupId = rs.getLong(1) + 1
+        }
       }
 
     } finally {
-      conn.close
+      conn.close()
     }
     groupId
   }
@@ -41,7 +42,7 @@ class PartyRelDao {
         result += ((rs.getString("from_party_uuid"), rs.getString("to_party_uuid")))
       }
     } finally {
-      conn.close
+      conn.close()
     }
     result.toList
   }
