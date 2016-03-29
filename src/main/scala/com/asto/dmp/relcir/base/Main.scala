@@ -31,12 +31,12 @@ object Main extends Logging {
    */
   private def argsIsIllegal(args: Array[String]) = {
     if (Option(args).isEmpty || args.length != 1) {
-      logError("请传入程序参数:时间戳")
+      logError("请传入程序参数:fromPartyUuid")
       true
     } else {
-      Constants.App.TIMESTAMP = args(0).toLong
-      //从外部传入的是秒级别的时间戳，所以要乘以1000
-      Constants.App.TODAY = DateUtils.timestampToStr(Constants.App.TIMESTAMP * 1000, "yyyyMM/dd")
+      Constants.App.TIMESTAMP = System.currentTimeMillis()
+      Constants.App.TODAY = DateUtils.timestampToStr(Constants.App.TIMESTAMP, "yyyyMM/dd")
+      Constants.App.FROM_PARTY_UUID = args(0)
       false
     }
   }

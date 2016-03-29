@@ -13,6 +13,7 @@ object Constants {
     val ERROR_LOG: StringBuffer = new StringBuffer("")
     var MESSAGES: StringBuffer = new StringBuffer("")
     var SAVE_MIDDLE_FILES = false
+    var FROM_PARTY_UUID: String = _
   }
   
   object Hadoop {
@@ -23,10 +24,7 @@ object Constants {
   /** 输出文件路径 **/
   object OutputPath {
     val SEPARATOR = "\t"
-    private val PATH = s"${App.DIR}/output/${App.TODAY}/${App.TIMESTAMP}"
-    val PARTY_REL_GROUP = s"$PATH/party_rel_group"
-    val PARTY_REL_GROUP_LIST = s"$PATH/party_rel_group_list"
+    val PARTY_REL_GROUP = s"${App.DIR}/output/party_rel_group/${App.TODAY}/${App.FROM_PARTY_UUID}"
+    val PARTY_REL_GROUP_LIST = s"${App.DIR}/output/party_rel_group_list/${App.TODAY}/${App.FROM_PARTY_UUID}"
   }
-
-
 }

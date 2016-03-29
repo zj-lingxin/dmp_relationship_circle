@@ -2,7 +2,6 @@ package com.asto.dmp.relcir.service
 
 import com.asto.dmp.relcir.base._
 import com.asto.dmp.relcir.dao.PartyRelDao
-import com.asto.dmp.relcir.dataframe.{DataQuery, SQL}
 import com.asto.dmp.relcir.mq._
 import com.asto.dmp.relcir.util.FileUtils
 import org.apache.spark.Logging
@@ -11,10 +10,8 @@ import scala.collection.mutable._
 import com.asto.dmp.relcir.service.ServiceImpl._
 
 object ServiceImpl {
-  val applyCode = 1
-  //申请人
-  val relativeCode = 2
-  //联系人
+  val applyCode = 1 //申请人
+  val relativeCode = 2 //联系人
   val applyAndRelativeCode = 3 //申请人和联系人
 
   def main(args: Array[String]) {
@@ -29,14 +26,8 @@ object ServiceImpl {
   }
 }
 
-class ServiceImpl extends Service with Logging {
-
-
+class ServiceImpl() extends Service with Logging with  scala.Serializable {
   val partyRelDao = new PartyRelDao()
-
-  /*  val fromToRelRDD = DataQuery.getPartyRelProps(SQL().select("from_party_uuid,to_party_uuid").where("to_party_uuid != 'null'"))
-      .map(a => (a(0).toString, a(1).toString))
-    val fromToRelList = fromToRelRDD.collect().toList*/
 
   val fromToRelList = partyRelDao.getFromToRel
   val fromToRelRDD = Contexts.sparkContext.makeRDD(fromToRelList)
@@ -109,8 +100,10 @@ class ServiceImpl extends Service with Logging {
 
   def saveResultToHDFS(groupIdAndRolesRDD: RDD[(Long, String, Int)], groupIdFromUUIDsAndToUUIDsRDD: RDD[(Long, String, String)]) = {
     logInfo("######## 向hdfs保存信息 #######")
-    val partyRelGroupPath = Props.get("party_rel_group_path")
-    val partyRelGroupListPath = Props.get("party_rel_group_list_path")
+    val partyRelGroupPath = Constants.OutputPath.PARTY_REL_GROUP
+    val partyRelGroupListPath = Constants.OutputPath.PARTY_REL_GROUP_LIST
+    println(partyRelGroupPath)
+    println(partyRelGroupListPath)
     FileUtils.saveAsTextFile(groupIdAndRolesRDD, partyRelGroupPath)
     FileUtils.saveAsTextFile(groupIdFromUUIDsAndToUUIDsRDD, partyRelGroupListPath)
 
@@ -118,19 +111,19 @@ class ServiceImpl extends Service with Logging {
 
   def sendResultToMQ(groupIdAndRolesRDD: RDD[(Long, String, Int)], groupIdFromUUIDsAndToUUIDsRDD: RDD[(Long, String, String)]) = {
     //relList: partyRelGroupId、partyUuid、role
-    val relList: List[RelMsg] = groupIdAndRolesRDD.collect.map {
+    val relList: List[RelMsg] = groupIdAndRolesRDD.collect().map {
       rel => RelMsg(rel._1.toString, rel._2, rel._3.toString)
     }.toList
     //partyRelList: partyRelGroupId、fromPartyUuid、toPartyUuid
 
-    val partyRelList: List[PartyRelMsg] = groupIdFromUUIDsAndToUUIDsRDD.collect.map {
+    val partyRelList: List[PartyRelMsg] = groupIdFromUUIDsAndToUUIDsRDD.collect().map {
       rel => PartyRelMsg(rel._1.toString, rel._2, rel._3)
     }.toList
     
     logInfo("######## 向MQ发送消息 #######")
     val patchSize = 500
     var relMsgBuffer = scala.collection.mutable.ArrayBuffer[RelMsg]()
-    for (i <- 0 until relList.length) {
+    for (i <- relList.indices) {
       relMsgBuffer += relList(i)
       if (i == relList.length - 1 || (i % patchSize == 0 && i != 0)) {
         MQAgent.send(Props.get("rel_list_queue_name"), RelWrapper.getJsonStr(relMsgBuffer.toList))
@@ -139,7 +132,7 @@ class ServiceImpl extends Service with Logging {
     }
 
     var partyRelMsgBuffer = scala.collection.mutable.ArrayBuffer[PartyRelMsg]()
-    for (i <- 0 until partyRelList.length) {
+    for (i <- partyRelList.indices) {
       partyRelMsgBuffer += partyRelList(i)
       if (i == partyRelList.length - 1 || (i % patchSize == 0 && i != 0)) {
         MQAgent.send(Props.get("party_rel_list_queue_name"), PartyRelWrapper.getJsonStr(partyRelMsgBuffer.toList))
@@ -150,10 +143,15 @@ class ServiceImpl extends Service with Logging {
 
   override protected def runServices(): Unit = {
 
-    val groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles).sortBy(a => a._1)
-    val groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD).sortBy(_._1)
-    
-    if (Props.get("result_to_hdfs").toBoolean) saveResultToHDFS(groupIdAndRolesRDD, groupIdFromUUIDsAndToUUIDsRDD)
-    if (Props.get("result_to_mq").toBoolean) sendResultToMQ(groupIdAndRolesRDD, groupIdFromUUIDsAndToUUIDsRDD)
+    val groupIdAndRolesRDD = getGroupIdAndRolesRDD(getGroupIds, getRoles)//.sortBy(a => a._1)
+    val groupIdFromUUIDsAndToUUIDsRDD = getGroupIdFromUUIDsAndToUUIDsRDD(groupIdAndRolesRDD)
+    val uuid = Constants.App.FROM_PARTY_UUID
+    val groupId: Long = groupIdAndRolesRDD.filter(_._2 == uuid).map(_._1).max()
+
+    val groupIdAndRoles = groupIdAndRolesRDD.filter(_._1 == groupId)
+    val groupIdFromUUIDsAndToUUIDs = groupIdFromUUIDsAndToUUIDsRDD.filter(_._1 == groupId)
+
+    if (Props.get("result_to_hdfs").toBoolean) saveResultToHDFS(groupIdAndRoles, groupIdFromUUIDsAndToUUIDs)
+    if (Props.get("result_to_mq").toBoolean) sendResultToMQ(groupIdAndRoles, groupIdFromUUIDsAndToUUIDs)
   }
 }
